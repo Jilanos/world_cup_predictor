@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>World Cup Predictor</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar">
+        <div>
+          <p class="eyebrow">Prediction data room</p>
+          <h1>World Cup Predictor</h1>
+        </div>
+        <div class="status-pill" id="readyBadge">Chargement</div>
+      </section>
+
+      <section class="controls" aria-label="Options de prédiction">
+        <button id="refreshBtn" class="button secondary">Actualiser</button>
+        <button id="loadExamplesBtn" class="button secondary">Charger les exemples</button>
+        <button id="runBtn" class="button primary">Lancer la prédiction</button>
+
+        <label class="toggle">
+          <input id="useElo" type="checkbox" checked />
+          <span>Elo</span>
+        </label>
+        <label class="toggle">
+          <input id="useFifa" type="checkbox" checked />
+          <span>FIFA</span>
+        </label>
+        <label class="toggle">
+          <input id="useOdds" type="checkbox" checked />
+          <span>Odds</span>
+        </label>
+        <label class="weight">
+          <span>Poids marché</span>
+          <input id="marketWeight" type="range" min="0" max="0.8" value="0.35" step="0.05" />
+          <strong id="marketWeightValue">0.35</strong>
+        </label>
+      </section>
+
+      <section class="reliability" id="reliabilityBanner" hidden></section>
+
+      <section class="message" id="message" hidden></section>
+
+      <section class="layout">
+        <aside class="panel">
+          <h2>Fichiers</h2>
+          <div id="fileList" class="file-list"></div>
+        </aside>
+
+        <section class="panel main-panel">
+          <div class="panel-head">
+            <h2>Aperçu</h2>
+            <a id="csvLink" href="/outputs/predictions.csv" target="_blank" rel="noreferrer">CSV</a>
+          </div>
+          <div id="preview" class="preview"></div>
+        </section>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>

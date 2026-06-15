@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+data/raw/*.csv
+data/manual/*.csv
+data/processed/*.csv
+outputs/*.csv
+outputs/*.md
+!examples/*.csv
