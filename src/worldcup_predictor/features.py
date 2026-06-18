@@ -8,10 +8,16 @@ import pandas as pd
 from .elo import EloResult, rolling_elo
 
 
+# Production model inputs. Phase 3 (AC3) removed `fifa_rank_diff`,
+# `fifa_points_diff`, `market_home/draw/away`: those columns were constant at
+# training time (no historical FIFA snapshots / odds), so the gradient-boosted
+# model never split on them and its output was provably invariant to them, while
+# real values were injected at fixture time. They were dead, misleading inputs.
+# Market signal is applied as documented post-processing (`blend_with_market`),
+# not as a model feature. The columns are still produced by the feature builders
+# (the blend reads `market_*`), they are simply not fed to the model.
 FEATURE_COLUMNS = [
     "elo_diff",
-    "fifa_rank_diff",
-    "fifa_points_diff",
     "recent_form_5_diff",
     "recent_form_10_diff",
     "goals_for_pg_diff",
@@ -20,16 +26,27 @@ FEATURE_COLUMNS = [
     "win_rate_diff",
     "neutral",
     "tournament_importance",
-    "market_home",
-    "market_draw",
-    "market_away",
 ]
+
+# Candidate draw/balance features (Phase 3 AC5). Experimental only: kept OUT of
+# the production FEATURE_COLUMNS until a walk-forward ablation on the full
+# dataset proves a robust log-loss/Brier gain. Use EXTENDED_FEATURE_COLUMNS to
+# run that ablation.
+BALANCE_FEATURE_COLUMNS = [
+    "abs_elo_diff",
+    "abs_recent_form_5_diff",
+    "abs_recent_form_10_diff",
+    "draw_rate_combined",
+]
+
+EXTENDED_FEATURE_COLUMNS = FEATURE_COLUMNS + BALANCE_FEATURE_COLUMNS
 
 # Defaults used when a team has no prior matches.
 _DEFAULT_FORM = 0.5
 _DEFAULT_GOALS = 1.2
 _DEFAULT_CLEAN_SHEET = 0.25
 _DEFAULT_WIN_RATE = 0.33
+_DEFAULT_DRAW_RATE = 0.25
 
 
 @dataclass(frozen=True)
@@ -93,6 +110,7 @@ def _team_match_rows(results: pd.DataFrame) -> pd.DataFrame:
     )
     rows["win"] = (rows["goals_for"] > rows["goals_against"]).astype(float)
     rows["clean_sheet"] = (rows["goals_against"] == 0).astype(float)
+    rows["draw"] = (rows["goals_for"] == rows["goals_against"]).astype(float)
     return rows
 
 
@@ -141,6 +159,7 @@ def _per_match_trailing_stats(results: pd.DataFrame) -> pd.DataFrame:
     rows["goals_against_pg"] = _trailing(grouped["goals_against"], 10).fillna(_DEFAULT_GOALS)
     rows["clean_sheet_rate"] = _trailing(grouped["clean_sheet"], 10).fillna(_DEFAULT_CLEAN_SHEET)
     rows["win_rate"] = _trailing(grouped["win"], 10).fillna(_DEFAULT_WIN_RATE)
+    rows["draw_rate_10"] = _trailing(grouped["draw"], 10).fillna(_DEFAULT_DRAW_RATE)
 
     stat_columns = [
         "form_5",
@@ -149,6 +168,7 @@ def _per_match_trailing_stats(results: pd.DataFrame) -> pd.DataFrame:
         "goals_against_pg",
         "clean_sheet_rate",
         "win_rate",
+        "draw_rate_10",
     ]
     home = rows[rows["is_home"] == 1].set_index("match_id")[stat_columns]
     away = rows[rows["is_home"] == 0].set_index("match_id")[stat_columns]
@@ -209,6 +229,12 @@ def build_features_for_results(
     out["market_home"] = 1 / 3
     out["market_draw"] = 1 / 3
     out["market_away"] = 1 / 3
+    # Candidate draw/balance features (Phase 3 AC5, experimental). Derived from
+    # already leak-free columns, so they inherit the no-future guarantee.
+    out["abs_elo_diff"] = out["elo_diff"].abs()
+    out["abs_recent_form_5_diff"] = out["recent_form_5_diff"].abs()
+    out["abs_recent_form_10_diff"] = out["recent_form_10_diff"].abs()
+    out["draw_rate_combined"] = (stats["home_draw_rate_10"] + stats["away_draw_rate_10"]) / 2
     if include_target:
         out["target"] = [
             result_label(int(h), int(a)) for h, a in zip(results["home_score"], results["away_score"])

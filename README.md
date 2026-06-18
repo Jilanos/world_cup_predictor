@@ -230,6 +230,32 @@ python scripts/model_selection.py
 
 It writes `outputs/model_selection.csv` and `outputs/model_selection.md`, comparing calibrated logistic regression against calibrated histogram gradient boosting while sweeping Elo K-factor and home advantage. The retained production defaults are documented in `src/worldcup_predictor/config.py` and `src/worldcup_predictor/model.py`.
 
+### Phase 3 — robust validation
+
+The single-window backtest above is a quick check. For a robust read, use the
+walk-forward validation, which trains and scores over several chronological
+windows and reports mean ± std plus a per-segment breakdown:
+
+```bash
+python scripts/walk_forward_validation.py --results data/raw/international_results.csv
+python scripts/walk_forward_validation.py --feature-set extended   # ablation with candidate draw/balance features
+```
+
+It writes `outputs/walk_forward_report.{md,csv}`. Note: the backtest scores the
+model **before** the market blend (`blend_with_market`, 35%, applied only in the
+prediction CLI when odds are present), so its numbers are the pre-blend model.
+
+Two Phase 3 cleanups affecting the model inputs:
+
+- `fifa_rank_diff`, `fifa_points_diff` and `market_*` were **removed** from the
+  model's `FEATURE_COLUMNS`. They were constant at training time (no historical
+  FIFA snapshots / odds), so the model never used them while real values were
+  injected at prediction time — dead, misleading inputs. Market signal is
+  applied only as post-processing (`blend_with_market`).
+- `market_weight=0.35` is **not validated on history** (the backtest has no
+  historical odds); it is kept as the current default pending a historical odds
+  source.
+
 ## Local Dashboard
 
 Start the local site with:

@@ -50,8 +50,10 @@ def train_result_model(
     train_features: pd.DataFrame,
     calibrate: bool = True,
     sample_weight: np.ndarray | None = None,
+    feature_columns: list[str] | None = None,
 ) -> object:
-    x = train_features[FEATURE_COLUMNS]
+    columns = feature_columns if feature_columns is not None else FEATURE_COLUMNS
+    x = train_features[columns]
     y = train_features["target"]
     estimator = _base_estimator()
     fit_kwargs = {} if sample_weight is None else {"sample_weight": sample_weight}
@@ -63,8 +65,11 @@ def train_result_model(
     return estimator.fit(x, y, **fit_kwargs)
 
 
-def predict_probabilities(model: object, features: pd.DataFrame) -> pd.DataFrame:
-    probabilities = model.predict_proba(features[FEATURE_COLUMNS])
+def predict_probabilities(
+    model: object, features: pd.DataFrame, feature_columns: list[str] | None = None
+) -> pd.DataFrame:
+    columns = feature_columns if feature_columns is not None else FEATURE_COLUMNS
+    probabilities = model.predict_proba(features[columns])
     class_index = {label: i for i, label in enumerate(model.classes_)}
     out = pd.DataFrame(index=features.index)
     for label in LABELS:
