@@ -1,0 +1,3 @@
+date,home_team,away_team,predicted_result,predicted_winner_or_draw,probability_home_win,probability_draw,probability_away_win,confidence_level,short_explanation
+2026-07-18,France,England,home,France,0.6406,0.0,0.3594,high,Pick: home. France has produced more goals recently; knockout match: draw probability was redistributed.
+2026-07-19,Spain,Argentina,home,Spain,0.5713,0.0,0.4287,medium,Pick: home. Argentina has produced more goals recently; knockout match: draw probability was redistributed.
