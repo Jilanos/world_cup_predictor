@@ -93,6 +93,32 @@ def blend_with_market(model_probs: pd.DataFrame, features: pd.DataFrame, market_
     return blended.div(blended.sum(axis=1), axis=0)
 
 
+def remove_draw_outcome(probabilities: pd.DataFrame, features: pd.DataFrame) -> pd.DataFrame:
+    """Convert 1X2 probabilities to two-way probabilities for no-draw fixtures.
+
+    The model estimates regulation-time 1X2. Knockout fixtures still need a
+    winner, so rows with ``allow_draw=0`` redistribute the draw mass
+    proportionally between the home and away probabilities.
+    """
+    if "allow_draw" not in features.columns:
+        return probabilities
+
+    adjusted = probabilities.copy()
+    no_draw = pd.to_numeric(features["allow_draw"], errors="coerce").fillna(1).astype(int) == 0
+    if not no_draw.any():
+        return adjusted
+
+    decisive_total = adjusted.loc[no_draw, "home"] + adjusted.loc[no_draw, "away"]
+    fallback = decisive_total <= 0
+    adjusted.loc[no_draw, "home"] = adjusted.loc[no_draw, "home"] / decisive_total.replace(0, np.nan)
+    adjusted.loc[no_draw, "away"] = adjusted.loc[no_draw, "away"] / decisive_total.replace(0, np.nan)
+    adjusted.loc[no_draw, "draw"] = 0.0
+    if fallback.any():
+        fallback_index = decisive_total[fallback].index
+        adjusted.loc[fallback_index, ["home", "away"]] = 0.5
+    return adjusted[LABELS]
+
+
 def confidence_level(max_probability: float) -> str:
     if max_probability >= 0.62:
         return "high"

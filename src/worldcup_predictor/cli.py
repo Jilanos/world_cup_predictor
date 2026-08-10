@@ -22,6 +22,7 @@ from .model import (
     LABELS,
     blend_with_market,
     confidence_level,
+    remove_draw_outcome,
     predict_probabilities,
     time_decay_weights,
     train_result_model,
@@ -51,7 +52,7 @@ def _prediction_name(result: str, home_team: str, away_team: str) -> str:
     return "Draw"
 
 
-def _explanation(row: pd.Series, result: str, used_market: bool) -> str:
+def _explanation(row: pd.Series, result: str, used_market: bool, draw_removed: bool) -> str:
     reasons = []
     if abs(row["elo_diff"]) >= 75:
         stronger = row["home_team"] if row["elo_diff"] > 0 else row["away_team"]
@@ -64,6 +65,8 @@ def _explanation(row: pd.Series, result: str, used_market: bool) -> str:
         reasons.append(f"{stronger} has produced more goals recently")
     if used_market:
         reasons.append("bookmaker odds were included")
+    if draw_removed:
+        reasons.append("knockout match: draw probability was redistributed")
     if not reasons:
         reasons.append("teams project closely on recent performance")
     return f"Pick: {result}. " + "; ".join(reasons[:3]) + "."
@@ -96,6 +99,7 @@ def run(args: argparse.Namespace) -> pd.DataFrame:
     )
     model_probs = predict_probabilities(model, fixture_features)
     probabilities = blend_with_market(model_probs, fixture_features, market_weight=args.market_weight)
+    probabilities = remove_draw_outcome(probabilities, fixture_features)
 
     rows = []
     for idx, feature_row in fixture_features.iterrows():
@@ -104,6 +108,7 @@ def run(args: argparse.Namespace) -> pd.DataFrame:
         used_market = bool(
             np.isfinite(feature_row[["market_home", "market_draw", "market_away"]].astype(float)).all()
         )
+        draw_removed = int(feature_row.get("allow_draw", 1)) == 0
         rows.append(
             {
                 "date": pd.Timestamp(feature_row["date"]).date().isoformat(),
@@ -119,7 +124,7 @@ def run(args: argparse.Namespace) -> pd.DataFrame:
                 "probability_draw": round(float(probs["draw"]), 4),
                 "probability_away_win": round(float(probs["away"]), 4),
                 "confidence_level": confidence_level(float(probs.max())),
-                "short_explanation": _explanation(feature_row, predicted_result, used_market),
+                "short_explanation": _explanation(feature_row, predicted_result, used_market, draw_removed),
             }
         )
 

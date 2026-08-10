@@ -309,6 +309,7 @@ def build_fixture_features(
                 "win_rate_diff": hs.win_rate - as_s.win_rate,
                 "neutral": float(match.get("neutral", 0)),
                 "tournament_importance": float(match.get("tournament_importance", 1.0)),
+                "allow_draw": int(match.get("allow_draw", 1)),
                 "market_home": float(market.get("market_home", np.nan)),
                 "market_draw": float(market.get("market_draw", np.nan)),
                 "market_away": float(market.get("market_away", np.nan)),

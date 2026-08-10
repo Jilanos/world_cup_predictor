@@ -44,10 +44,13 @@ date,home_team,away_team
 Optional columns:
 
 ```csv
-neutral,tournament_importance
+neutral,tournament_importance,allow_draw
 ```
 
-For World Cup matches, `neutral` is usually `1`. `tournament_importance` can be left out; the default is `1.0`.
+For World Cup matches, `neutral` is usually `1`. `tournament_importance` can
+be left out; the default is `1.0`. For knockout matches where a winner is
+required, set `allow_draw` to `0`; the pipeline redistributes the model's draw
+probability across the two teams.
 
 ### Required: historical international results
 

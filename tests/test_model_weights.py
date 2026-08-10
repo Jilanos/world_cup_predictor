@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from worldcup_predictor.model import time_decay_weights
+from worldcup_predictor.model import remove_draw_outcome, time_decay_weights
 
 
 def _dates(*offsets_years, end="2025-01-01"):
@@ -42,3 +42,22 @@ def test_explicit_as_of_reference():
     # Reference at the most recent date -> oldest gets smallest weight.
     w = time_decay_weights(dates, as_of=pd.Timestamp("2025-01-01"), half_life=4)
     assert w[0] > w[1] > w[2]
+
+
+def test_remove_draw_outcome_only_adjusts_no_draw_fixtures():
+    probabilities = pd.DataFrame(
+        {
+            "home": [0.35, 0.40],
+            "draw": [0.30, 0.25],
+            "away": [0.35, 0.35],
+        }
+    )
+    features = pd.DataFrame({"allow_draw": [0, 1]})
+
+    adjusted = remove_draw_outcome(probabilities, features)
+
+    assert adjusted.loc[0, "draw"] == pytest.approx(0.0)
+    assert adjusted.loc[0, "home"] + adjusted.loc[0, "away"] == pytest.approx(1.0)
+    assert adjusted.loc[0, "home"] == pytest.approx(0.5)
+    assert adjusted.loc[1, "draw"] == pytest.approx(0.25)
+    assert adjusted.loc[1, "home"] == pytest.approx(0.40)

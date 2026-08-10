@@ -35,6 +35,9 @@ def load_fixtures(path: Path) -> pd.DataFrame:
         df["neutral"] = 1
     if "tournament_importance" not in df.columns:
         df["tournament_importance"] = 1.0
+    if "allow_draw" not in df.columns:
+        df["allow_draw"] = 1
+    df["allow_draw"] = pd.to_numeric(df["allow_draw"], errors="coerce").fillna(1).astype(int)
     return df
 
 
