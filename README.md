@@ -1,22 +1,41 @@
 # World Cup Predictor
 
-A pragmatic Python project for predicting FIFA World Cup match outcomes for a private prediction game.
+A Python tool that predicts FIFA World Cup match outcomes (home / draw / away) for a private prediction game.
 
-The pipeline reads local CSV files, trains a calibrated 1X2 classifier on historical international results, optionally blends probabilities with bookmaker implied probabilities, then writes:
+## Problem solved
 
-- `outputs/predictions.csv`
-- `outputs/predictions_pretty.md`
+Filling in a prediction game by gut feeling is hard to improve. This project trains a calibrated classifier on historical international results and gives a probability for each fixture you list, so the picks are explicit and can be measured against past matches. It is a baseline for a friends' game, not a betting system.
 
-## Setup
+## Features
 
-Requires Python 3.11+.
+- Calibrated 1X2 gradient-boosting model trained on historical international results, with recency weighting.
+- Features: leak-free rolling Elo, recent form, goals for/against, clean sheets, neutral venue, tournament importance, optional FIFA rankings.
+- Optional blend with bookmaker implied probabilities.
+- Knockout fixtures without a draw (`allow_draw=0`): the draw probability is redistributed to the two teams.
+- Outputs `outputs/predictions.csv` and `outputs/predictions_pretty.md`.
+- Backtest and walk-forward validation to measure reliability, plus an "UNRELIABLE" warning when the results file is too small.
+- Local dashboard (`worldcup-site`) to check input files and run predictions.
+
+## Quick start
+
+Requires Python 3.11+. The repository ships a full historical results file and a small fixtures sample.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-pip install -e .
+pip install -e ".[dev]"
+pytest -q                      # 37 tests
+worldcup-predict               # reads data/, writes outputs/
 ```
+
+## Tech stack
+
+Python 3.11+, pandas, NumPy, scikit-learn, pytest. The dashboard is a static HTML/JS front end served by a small Python server.
+
+## Status
+
+Working personal project (v0.1.0). Tests pass; the model is a compact baseline. No hosted demo.
 
 ## Data Files
 
